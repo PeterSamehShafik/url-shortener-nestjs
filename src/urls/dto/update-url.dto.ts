@@ -1,4 +1,5 @@
-import { IsBoolean, IsDateString, IsOptional } from 'class-validator';
+import { IsFutureIsoDate } from '@/common/decorators/is-future-iso-date.decorator';
+import { IsBoolean, IsOptional } from 'class-validator';
 
 export class UpdateUrlDto {
   @IsOptional()
@@ -6,9 +7,6 @@ export class UpdateUrlDto {
   isActive?: boolean;
 
   @IsOptional()
-  @IsDateString(
-    {},
-    { message: 'expiresAt must be a valid ISO 8601 date string' },
-  )
-  expiresAt?: string;
+  @IsFutureIsoDate()
+  expiresAt?: Date;
 }

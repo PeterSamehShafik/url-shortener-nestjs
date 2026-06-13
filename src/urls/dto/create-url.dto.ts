@@ -1,5 +1,5 @@
+import { IsFutureIsoDate } from '@/common/decorators/is-future-iso-date.decorator';
 import {
-  IsDateString,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -28,9 +28,6 @@ export class CreateUrlDto {
   customSlug?: string;
 
   @IsOptional()
-  @IsDateString(
-    {},
-    { message: 'expiresAt must be a valid ISO 8601 date string' },
-  )
-  expiresAt?: string;
+  @IsFutureIsoDate()
+  expiresAt?: Date;
 }
