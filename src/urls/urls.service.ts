@@ -45,6 +45,11 @@ export class UrlsService {
         'Custom slugs are only available to authenticated users',
       );
     }
+    if (dto.expiresAt && !userId) {
+      throw new ForbiddenException(
+        'ExpiresAt is only available to authenticated users',
+      );
+    }
 
     const slug = dto.customSlug
       ? this.resolveCustomSlug(dto.customSlug)
