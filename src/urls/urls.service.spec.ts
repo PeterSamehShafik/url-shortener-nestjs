@@ -222,30 +222,62 @@ describe('UrlsService', () => {
   });
 
   // // ─── findBySlug() ───────────────────────────────────────────────────────────
-  // describe('findBySlug()', () => {
-  //   it('should return URL when slug exists and active', () => {
-  //     const created = service.create(makeDto(), 'user-123');
-  //     const found = service.findBySlug(created.slug);
+  describe('findBySlug()', () => {
+    it('should return the URL when found and active', async () => {
+      const fakeUrl = makeFakeUrl({
+        slug: 'abc123',
+        isActive: true,
+        expiresAt: null,
+      });
+      repository.findBySlug.mockResolvedValue(fakeUrl);
 
-  //     expect(found.slug).toBe(created.slug);
-  //     expect(found.originalUrl).toBe(created.originalUrl);
-  //   });
-  //   it('should throw NotFoundException when slug does not exist', () => {
-  //     expect(() => service.findBySlug('nonexistent')).toThrow(
-  //       NotFoundException,
-  //     );
-  //   });
-  //   it('should throw NotFoundException when URL is inactive', () => {
-  //     const created = service.create(makeDto(), 'user-123');
-  //     created.isActive = false;
-  //     expect(() => service.findBySlug(created.slug)).toThrow(NotFoundException);
-  //   });
-  //   it('should throw GoneException when URL is expired', () => {
-  //     const created = service.create(makeDto(), 'user-123');
-  //     created.expiresAt = new Date(Date.now() - 1000);
-  //     expect(() => service.findBySlug(created.slug)).toThrow(GoneException);
-  //   });
-  // });
+      const result = await service.findBySlug('abc123');
+
+      expect(result.slug).toBe('abc123');
+    });
+
+    it('should throw NotFoundException when slug does not exist', async () => {
+      repository.findBySlug.mockResolvedValue(null);
+
+      await expect(service.findBySlug('nonexistent')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('should throw NotFoundException when URL is inactive', async () => {
+      repository.findBySlug.mockResolvedValue(makeFakeUrl({ isActive: false }));
+
+      await expect(service.findBySlug('abc123')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('should throw GoneException when URL is expired', async () => {
+      const pastDate = new Date(Date.now() - 1000);
+      repository.findBySlug.mockResolvedValue(
+        makeFakeUrl({ isActive: true, expiresAt: pastDate }),
+      );
+
+      await expect(service.findBySlug('abc123')).rejects.toThrow(GoneException);
+    });
+
+    it('should not throw when expiresAt is in the future', async () => {
+      const futureDate = new Date(Date.now() + 1000 * 60 * 60);
+      repository.findBySlug.mockResolvedValue(
+        makeFakeUrl({ isActive: true, expiresAt: futureDate }),
+      );
+
+      await expect(service.findBySlug('abc123')).resolves.toBeDefined();
+    });
+
+    it('should not throw when expiresAt is null', async () => {
+      repository.findBySlug.mockResolvedValue(
+        makeFakeUrl({ isActive: true, expiresAt: null }),
+      );
+
+      await expect(service.findBySlug('abc123')).resolves.toBeDefined();
+    });
+  });
 
   // // ─── findAllByUser() ────────────────────────────────────────────────────────
 
