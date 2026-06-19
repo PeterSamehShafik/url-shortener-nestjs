@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Url } from './entities/url.entity';
-import { Repository } from 'typeorm';
+import { QueryFailedError, Repository } from 'typeorm';
+import { SlugCollisionError } from './errors/slug-collision.error';
 
 export interface CreateUrlData {
   originalUrl: string;
@@ -12,16 +13,26 @@ export interface CreateUrlData {
 
 export interface UpdateUrlData {
   isActive?: boolean;
-  expiresAt: Date | null;
+  expiresAt?: Date | null;
 }
 
 @Injectable()
 export class UrlsRepository {
   constructor(@InjectRepository(Url) private readonly repo: Repository<Url>) {}
 
-  create(data: CreateUrlData): Promise<Url> {
-    const url = this.repo.create(data);
-    return this.repo.save(url);
+  async create(data: Partial<Url>): Promise<Url> {
+    try {
+      const url = this.repo.create(data);
+      return await this.repo.save(url);
+    } catch (error) {
+      if (
+        error instanceof QueryFailedError &&
+        (error as any).code === '23505'
+      ) {
+        throw new SlugCollisionError(data.slug!);
+      }
+      throw error;
+    }
   }
 
   findBySlug(slug: string): Promise<Url | null> {

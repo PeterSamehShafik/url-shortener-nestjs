@@ -3,6 +3,7 @@ import {
   ForbiddenException,
   GoneException,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
@@ -11,6 +12,7 @@ import { CreateUrlDto } from './dto/create-url.dto';
 import { Url } from './entities/url.entity';
 import { UrlsRepository } from './urls.repository';
 import { UpdateUrlDto } from './dto/update-url.dto';
+import { SlugCollisionError } from './errors/slug-collision.error';
 
 // outside not to recreate it on every request or every class instantiation
 const PRIVATE_IP_PATTERNS = [
@@ -31,6 +33,58 @@ const generateSlug = customAlphabet(
 export class UrlsService {
   constructor(private readonly urlsRepo: UrlsRepository) {}
 
+  private async insertWithCustomSlug(
+    dto: CreateUrlDto,
+    expiresAt: Date | null,
+    userId: string | null,
+  ): Promise<Url> {
+    try {
+      return await this.urlsRepo.create({
+        originalUrl: dto.originalUrl,
+        slug: dto.customSlug!,
+        expiresAt,
+        userId,
+      });
+    } catch (error) {
+      if (error instanceof SlugCollisionError) {
+        throw new ConflictException(
+          `The custom slug '${dto.customSlug}' is already taken.`,
+        );
+      }
+      throw error;
+    }
+  }
+
+  private async insertWithGeneratedSlug(
+    dto: CreateUrlDto,
+    expiresAt: Date | null,
+    userId: string | null,
+  ): Promise<Url> {
+    const MAX_ATTEMPTS = 3;
+
+    for (let i = 0; i < MAX_ATTEMPTS; i++) {
+      const slug = generateSlug(); // Your NanoID function
+
+      try {
+        return await this.urlsRepo.create({
+          originalUrl: dto.originalUrl,
+          slug,
+          expiresAt,
+          userId,
+        });
+      } catch (error) {
+        if (error instanceof SlugCollisionError) {
+          // Collision happened
+          continue;
+        }
+        throw error;
+      }
+    }
+
+    throw new InternalServerErrorException(
+      'Failed to generate a unique slug. Please try again.',
+    );
+  }
   async create(dto: CreateUrlDto, userId: string | null = null): Promise<Url> {
     this.preventSsrf(dto.originalUrl);
 
@@ -44,19 +98,14 @@ export class UrlsService {
         'ExpiresAt is only available to authenticated users',
       );
     }
-
-    const slug = dto.customSlug
-      ? await this.resolveCustomSlug(dto.customSlug)
-      : await this.generateUniqueSlug();
-
     const expiresAt = this.resolveExpiry(dto.expiresAt, userId);
 
-    return this.urlsRepo.create({
-      originalUrl: dto.originalUrl,
-      slug,
-      expiresAt,
-      userId,
-    });
+    // Route to the correct insertion strategy
+    if (dto.customSlug) {
+      return this.insertWithCustomSlug(dto, expiresAt, userId);
+    }
+
+    return this.insertWithGeneratedSlug(dto, expiresAt, userId);
   }
 
   async findBySlug(slug: string): Promise<Url> {
@@ -123,27 +172,7 @@ export class UrlsService {
       );
     }
   }
-  private async resolveCustomSlug(customSlug: string): Promise<string> {
-    const taken = await this.urlsRepo.isSlugTaken(customSlug);
 
-    if (taken) {
-      throw new ConflictException(`The slug "${customSlug}" is already taken`);
-    }
-    return customSlug;
-  }
-  private async generateUniqueSlug(): Promise<string> {
-    const MAX_ATTEMPTS = 3;
-    for (let i = 0; i < MAX_ATTEMPTS; ++i) {
-      const newSlug = generateSlug();
-
-      const taken = await this.urlsRepo.isSlugTaken(newSlug);
-      if (!taken) {
-        return newSlug;
-      }
-    }
-
-    throw new Error('Failed to generate a unique slug. Please try again');
-  }
   private resolveExpiry(
     expiresAt: Date | undefined,
     userId: string | null,
