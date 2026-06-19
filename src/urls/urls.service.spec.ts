@@ -56,9 +56,6 @@ describe('UrlsService', () => {
     Object.assign(dto, overrides);
     return dto;
   }
-  function futureDateString(daysFromNow = 30): Date {
-    return new Date(Date.now() + daysFromNow * 24 * 60 * 60 * 1000);
-  }
   function makeFakeUrl(overrides: Partial<Url> = {}): Url {
     return {
       id: 'fake-id',
@@ -141,43 +138,88 @@ describe('UrlsService', () => {
       });
     });
   });
-  // describe('authenticated user (userId Provided)', () => {
-  //   const userId = 'test-id';
-  //   it('should create URL with no expiry for auth user', () => {
-  //     const result = service.create(makeDto(), userId);
-  //     expect(result.userId).toBe(userId);
-  //     expect(result.expiresAt).toBeNull();
-  //   });
+  describe('authenticated user (userId Provided)', () => {
+    const userId = 'test-id';
+    it('should create a URL with no expiry by default', async () => {
+      const dto = makeDto();
+      const fakeUrl = makeFakeUrl({ userId, expiresAt: null });
 
-  //   it('should use provided customSlug', () => {
-  //     const result = service.create(
-  //       makeDto({ customSlug: 'custom-slug' }),
-  //       userId,
-  //     );
-  //     expect(result.slug).toBe('custom-slug');
-  //   });
+      repository.isSlugTaken.mockResolvedValue(false);
+      repository.create.mockResolvedValue(fakeUrl);
 
-  //   it('should throw ConflictException when slug already taken', () => {
-  //     const customSlug = 'custom-slu';
-  //     service.create(makeDto({ customSlug }), userId);
-  //     expect(() => {
-  //       service.create(makeDto({ customSlug }), userId);
-  //     }).toThrow(ConflictException);
-  //   });
+      await service.create(dto, userId);
 
-  //   it('should use provided expiresAt', () => {
-  //     const expiresAt = futureDateString(10);
-  //     const result = service.create(makeDto({ expiresAt }), userId);
-  //     expect(result.expiresAt).toEqual(expiresAt);
-  //   });
+      const callArg = repository.create.mock.calls[0][0];
+      expect(callArg.expiresAt).toBeNull();
+      expect(callArg.userId).toBe(userId);
+    });
 
-  //   it('should store originalUrl exactly as provided', () => {
-  //     const originalUrl = 'https://github.com/some/deep/path?query=1';
-  //     const result = service.create(makeDto({ originalUrl }), userId);
+    it('should use the provided customSlug', async () => {
+      const dto = makeDto({ customSlug: 'my-campaign' });
+      repository.isSlugTaken.mockResolvedValue(false);
+      repository.create.mockResolvedValue(
+        makeFakeUrl({ slug: 'my-campaign', userId }),
+      );
 
-  //     expect(result.originalUrl).toBe(originalUrl);
-  //   });
-  // });
+      await service.create(dto, userId);
+
+      const callArg = repository.create.mock.calls[0][0];
+      expect(callArg.slug).toBe('my-campaign');
+    });
+
+    it('should throw ConflictException when customSlug is already taken', async () => {
+      const dto = makeDto({ customSlug: 'taken-slug' });
+      repository.isSlugTaken.mockResolvedValue(true);
+
+      await expect(service.create(dto, userId)).rejects.toThrow(
+        ConflictException,
+      );
+
+      expect(repository.create.mock.calls.length).toBe(0);
+    });
+
+    it('should use provided expiresAt over the default', async () => {
+      const futureDate = new Date(Date.now() + 10 * 24 * 60 * 60 * 1000);
+      const dto = makeDto({ expiresAt: futureDate });
+
+      repository.isSlugTaken.mockResolvedValue(false);
+      repository.create.mockResolvedValue(
+        makeFakeUrl({ expiresAt: futureDate }),
+      );
+
+      await service.create(dto, userId);
+
+      const callArg = repository.create.mock.calls[0][0];
+      expect(callArg.expiresAt).toEqual(futureDate);
+    });
+
+    it('should retry slug generation on collision and succeed within max attempts', async () => {
+      const dto = makeDto();
+
+      repository.isSlugTaken
+        .mockResolvedValueOnce(true) // 1st attempt: taken
+        .mockResolvedValueOnce(false); // 2nd attempt: free
+
+      repository.create.mockResolvedValue(makeFakeUrl({ userId }));
+
+      await service.create(dto, userId);
+
+      expect(repository.isSlugTaken.mock.calls.length).toBe(2);
+      expect(repository.create.mock.calls.length).toBe(1);
+    });
+
+    it('should throw after exhausting max slug generation attempts', async () => {
+      const dto = makeDto();
+      repository.isSlugTaken.mockResolvedValue(true); // always taken
+
+      await expect(service.create(dto, userId)).rejects.toThrow(
+        'Failed to generate a unique slug. Please try again',
+      );
+
+      expect(repository.isSlugTaken.mock.calls.length).toBe(3);
+      expect(repository.create.mock.calls.length).toBe(0);
+    });
+  });
 
   // // ─── findBySlug() ───────────────────────────────────────────────────────────
   // describe('findBySlug()', () => {
