@@ -1,3 +1,4 @@
+import { RefreshToken } from '@/auth/entities/refresh-token.entity';
 import { Url } from '@/urls/entities/url.entity';
 import {
   Column,
@@ -31,6 +32,9 @@ export class User {
 
   @OneToMany(() => Url, (url) => url.user)
   urls!: Url[];
+
+  @OneToMany(() => RefreshToken, (token) => token.user)
+  refreshTokens!: RefreshToken[];
 
   @CreateDateColumn()
   createdAt!: Date;
