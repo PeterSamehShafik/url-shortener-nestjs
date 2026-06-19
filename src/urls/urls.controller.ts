@@ -32,14 +32,14 @@ export class UrlsController {
 
   @Patch('urls/:id')
   update(@Param('id') id: string, @Body() dto: UpdateUrlDto) {
-    return this.urlsService.updateUrl(id, dto, 'user-id', 'user');
+    return this.urlsService.update(id, dto, 'user-id', 'user');
   }
 
   @Delete('urls/:id')
   @HttpCode(HttpStatus.NO_CONTENT)
   delete(@Param('id') id: string) {
     // userId and role will come from JWT in Phase 3
-    return this.urlsService.deleteUrl(id, 'user-id', 'user');
+    return this.urlsService.delete(id, 'user-id', 'user');
   }
 
   @Get(':slug')

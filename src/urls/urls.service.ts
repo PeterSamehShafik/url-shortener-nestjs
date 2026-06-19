@@ -77,13 +77,13 @@ export class UrlsService {
     return this.urlsRepo.findAllByUserId(userId);
   }
 
-  async updateUrl(
+  async update(
     urlId: string,
     dto: UpdateUrlDto,
     userId: string,
     userRole: string,
   ): Promise<Url> {
-    const url = await this.urlsRepo.findByUrlId(urlId);
+    const url = await this.urlsRepo.findById(urlId);
     if (!url || (url.userId !== userId && userRole !== 'admin')) {
       throw new NotFoundException(`URL with id ${urlId} not found`);
     }
@@ -94,12 +94,8 @@ export class UrlsService {
     return updated!;
   }
 
-  async deleteUrl(
-    urlId: string,
-    userId: string,
-    userRole: string,
-  ): Promise<void> {
-    const url = await this.urlsRepo.findByUrlId(urlId);
+  async delete(urlId: string, userId: string, userRole: string): Promise<void> {
+    const url = await this.urlsRepo.findById(urlId);
     if (!url || (url.userId !== userId && userRole !== 'admin')) {
       throw new NotFoundException(`URL with id ${urlId} not found`);
     }

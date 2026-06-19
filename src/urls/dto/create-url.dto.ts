@@ -1,7 +1,7 @@
 import { IsFutureIsoDate } from '@/common/decorators/is-future-iso-date.decorator';
+import { IsOptionalButNotNull } from '@/common/decorators/Is-optional-but-not-null';
 import {
   IsNotEmpty,
-  IsOptional,
   IsString,
   IsUrl,
   Matches,
@@ -18,7 +18,7 @@ export class CreateUrlDto {
   @MaxLength(2048, { message: 'originalUrl must not exceed 2048 characters' })
   originalUrl!: string;
 
-  @IsOptional()
+  @IsOptionalButNotNull()
   @IsString()
   @MinLength(3, { message: 'customSlug must be at least 3 characters' })
   @MaxLength(20, { message: 'customSlug must not exceed 20 characters' })
@@ -27,7 +27,7 @@ export class CreateUrlDto {
   })
   customSlug?: string;
 
-  @IsOptional()
+  @IsOptionalButNotNull()
   @IsFutureIsoDate()
   expiresAt?: Date;
 }

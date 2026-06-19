@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/unbound-method */
+
 import {
   describe,
   beforeEach,
@@ -279,6 +281,129 @@ describe('UrlsService', () => {
     });
   });
 
+  // // ─── Update() ────────────────────────────────────────────────────────
+  describe('update()', () => {
+    const ownerId = 'user-123';
+    const adminId = 'admin-456';
+
+    it('should update the URL when the requester is the owner', async () => {
+      const existing = makeFakeUrl({ id: 'url-1', userId: ownerId });
+      repository.findById.mockResolvedValue(existing);
+      repository.update.mockResolvedValue(
+        makeFakeUrl({ id: 'url-1', userId: ownerId, isActive: false }),
+      );
+
+      const result = await service.update(
+        'url-1',
+        { isActive: false },
+        ownerId,
+        'user',
+      );
+
+      expect(result.isActive).toBe(false);
+      expect(repository.update).toHaveBeenCalledWith('url-1', {
+        isActive: false,
+        expiresAt: undefined,
+      });
+    });
+
+    it('should allow an admin to update a URL they do not own', async () => {
+      const existing = makeFakeUrl({ id: 'url-1', userId: ownerId });
+      repository.findById.mockResolvedValue(existing);
+      repository.update.mockResolvedValue(
+        makeFakeUrl({ id: 'url-1', userId: ownerId, isActive: false }),
+      );
+
+      await expect(
+        service.update('url-1', { isActive: false }, adminId, 'admin'),
+      ).resolves.toBeDefined();
+    });
+
+    it('should throw NotFoundException when URL does not exist', async () => {
+      repository.findById.mockResolvedValue(null);
+
+      await expect(
+        service.update('nonexistent', { isActive: false }, ownerId, 'user'),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw NotFoundException (not Forbidden) when requester is not owner and not admin', async () => {
+      const existing = makeFakeUrl({ id: 'url-1', userId: 'someone-else' });
+      repository.findById.mockResolvedValue(existing);
+
+      await expect(
+        service.update('url-1', { isActive: false }, ownerId, 'user'),
+      ).rejects.toThrow(NotFoundException);
+
+      expect(repository.update).not.toHaveBeenCalled();
+    });
+
+    it('should clear expiresAt when explicitly passed as null', async () => {
+      const existing = makeFakeUrl({
+        id: 'url-1',
+        userId: ownerId,
+        expiresAt: new Date(),
+      });
+      repository.findById.mockResolvedValue(existing);
+      repository.update.mockResolvedValue(
+        makeFakeUrl({ id: 'url-1', userId: ownerId, expiresAt: null }),
+      );
+
+      const result = await service.update(
+        'url-1',
+        { expiresAt: null },
+        ownerId,
+        'user',
+      );
+
+      expect(result.expiresAt).toBeNull();
+      expect(repository.update).toHaveBeenCalledWith('url-1', {
+        isActive: undefined,
+        expiresAt: null,
+      });
+    });
+  });
+
+  describe('delete()', () => {
+    const ownerId = 'user-123';
+    const adminId = 'admin-456';
+
+    it('should delete the URL when the requester is the owner', async () => {
+      const existing = makeFakeUrl({ id: 'url-1', userId: ownerId });
+      repository.findById.mockResolvedValue(existing);
+
+      await service.delete('url-1', ownerId, 'user');
+      expect(repository.delete).toHaveBeenCalledWith('url-1');
+    });
+
+    it('should allow an admin to delete a URL they do not own', async () => {
+      const existing = makeFakeUrl({ id: 'url-1', userId: ownerId });
+      repository.findById.mockResolvedValue(existing);
+
+      await expect(
+        service.delete('url-1', adminId, 'admin'),
+      ).resolves.not.toThrow();
+    });
+
+    it('should throw NotFoundException when URL does not exist', async () => {
+      repository.findById.mockResolvedValue(null);
+
+      await expect(
+        service.delete('nonexistent', ownerId, 'user'),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw NotFoundException (not Forbidden) when requester is not owner and not admin', async () => {
+      const existing = makeFakeUrl({ id: 'url-1', userId: 'someone-else' });
+      repository.findById.mockResolvedValue(existing);
+
+      await expect(service.delete('url-1', ownerId, 'user')).rejects.toThrow(
+        NotFoundException,
+      );
+
+      expect(repository.delete).not.toHaveBeenCalled();
+    });
+  });
   // // ─── findAllByUser() ────────────────────────────────────────────────────────
 
   // describe('findAllByUser()', () => {

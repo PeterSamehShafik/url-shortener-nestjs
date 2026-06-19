@@ -8,6 +8,7 @@ export function applyAppSetup(app: INestApplication): void {
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
+      skipMissingProperties: false,
     }),
   );
 

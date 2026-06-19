@@ -12,7 +12,7 @@ export interface CreateUrlData {
 
 export interface UpdateUrlData {
   isActive?: boolean;
-  expiresAt: Date;
+  expiresAt: Date | null;
 }
 
 @Injectable()
@@ -28,7 +28,7 @@ export class UrlsRepository {
     return this.repo.findOne({ where: { slug } });
   }
 
-  findByUrlId(urlId: string): Promise<Url | null> {
+  findById(urlId: string): Promise<Url | null> {
     return this.repo.findOne({ where: { id: urlId } });
   }
   findAllByUserId(userId: string): Promise<Url[]> {
@@ -37,7 +37,7 @@ export class UrlsRepository {
 
   async update(urlId: string, data: UpdateUrlData): Promise<Url | null> {
     await this.repo.update(urlId, data);
-    return this.findByUrlId(urlId);
+    return this.findById(urlId);
   }
 
   async delete(id: string): Promise<void> {
