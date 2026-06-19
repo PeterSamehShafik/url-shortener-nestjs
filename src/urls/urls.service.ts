@@ -8,16 +8,9 @@ import {
 } from '@nestjs/common';
 import { customAlphabet } from 'nanoid';
 import { CreateUrlDto } from './dto/create-url.dto';
-
-export interface ShortenedUrl {
-  id: string;
-  originalUrl: string;
-  slug: string;
-  userId: string | null;
-  isActive: boolean;
-  expiresAt: Date | null;
-  createdAt: Date | null;
-}
+import { Url } from './entities/url.entity';
+import { UrlsRepository } from './urls.repository';
+import { UpdateUrlDto } from './dto/update-url.dto';
 
 // outside not to recreate it on every request or every class instantiation
 const PRIVATE_IP_PATTERNS = [
@@ -36,10 +29,11 @@ const generateSlug = customAlphabet(
 
 @Injectable()
 export class UrlsService {
-  private readonly urls: ShortenedUrl[] = [];
+  constructor(private readonly urlsRepo: UrlsRepository) {}
 
-  create(dto: CreateUrlDto, userId: string | null = null) {
+  async create(dto: CreateUrlDto, userId: string | null = null): Promise<Url> {
     this.preventSsrf(dto.originalUrl);
+
     if (dto.customSlug && !userId) {
       throw new ForbiddenException(
         'Custom slugs are only available to authenticated users',
@@ -52,27 +46,21 @@ export class UrlsService {
     }
 
     const slug = dto.customSlug
-      ? this.resolveCustomSlug(dto.customSlug)
-      : this.generateUniqueSlug();
+      ? await this.resolveCustomSlug(dto.customSlug)
+      : await this.generateUniqueSlug();
 
     const expiresAt = this.resolveExpiry(dto.expiresAt, userId);
 
-    const newUrl: ShortenedUrl = {
-      id: crypto.randomUUID(),
-      expiresAt,
-      slug,
+    return this.urlsRepo.create({
       originalUrl: dto.originalUrl,
-      isActive: true,
-      createdAt: new Date(),
+      slug,
+      expiresAt,
       userId,
-    };
-
-    this.urls.push(newUrl);
-    return newUrl;
+    });
   }
 
-  findBySlug(slug: string): ShortenedUrl {
-    const url = this.urls.find((u) => u.slug === slug);
+  async findBySlug(slug: string): Promise<Url> {
+    const url = await this.urlsRepo.findBySlug(slug);
 
     if (!url || !url.isActive) {
       throw new NotFoundException(`No URL found for slug: ${slug}`);
@@ -85,11 +73,40 @@ export class UrlsService {
     return url;
   }
 
-  findAllByUser(userId: string): ShortenedUrl[] {
-    return this.urls.filter((url) => url.userId === userId);
+  findAllByUser(userId: string): Promise<Url[]> {
+    return this.urlsRepo.findAllByUserId(userId);
   }
 
-  // Helpers
+  async updateUrl(
+    urlId: string,
+    dto: UpdateUrlDto,
+    userId: string,
+    userRole: string,
+  ): Promise<Url> {
+    const url = await this.urlsRepo.findByUrlId(urlId);
+    if (!url || (url.userId !== userId && userRole !== 'admin')) {
+      throw new NotFoundException(`URL with id ${urlId} not found`);
+    }
+    const updated = await this.urlsRepo.update(urlId, {
+      isActive: dto.isActive,
+      expiresAt: dto.expiresAt!,
+    });
+    return updated!;
+  }
+
+  async deleteUrl(
+    urlId: string,
+    userId: string,
+    userRole: string,
+  ): Promise<void> {
+    const url = await this.urlsRepo.findByUrlId(urlId);
+    if (!url || (url.userId !== userId && userRole !== 'admin')) {
+      throw new NotFoundException(`URL with id ${urlId} not found`);
+    }
+    await this.urlsRepo.delete(urlId);
+  }
+
+  // ____Helpers_______________________________________
   preventSsrf(url: string) {
     let hostname: string;
 
@@ -110,31 +127,28 @@ export class UrlsService {
       );
     }
   }
+  private async resolveCustomSlug(customSlug: string): Promise<string> {
+    const taken = await this.urlsRepo.isSlugTaken(customSlug);
 
-  resolveCustomSlug(customSlug: string): string {
-    const exists = this.urls.some((url) => url.slug === customSlug);
-
-    if (exists) {
+    if (taken) {
       throw new ConflictException(`The slug "${customSlug}" is already taken`);
     }
     return customSlug;
   }
-
-  generateUniqueSlug() {
+  private async generateUniqueSlug(): Promise<string> {
     const MAX_ATTEMPTS = 3;
     for (let i = 0; i < MAX_ATTEMPTS; ++i) {
       const newSlug = generateSlug();
 
-      const exists = this.urls.some((url) => url.slug === newSlug);
-      if (!exists) {
+      const taken = await this.urlsRepo.isSlugTaken(newSlug);
+      if (!taken) {
         return newSlug;
       }
     }
 
     throw new Error('Failed to generate a unique slug. Please try again');
   }
-
-  resolveExpiry(
+  private resolveExpiry(
     expiresAt: Date | undefined,
     userId: string | null,
   ): Date | null {
