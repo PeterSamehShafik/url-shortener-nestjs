@@ -20,16 +20,16 @@ export interface UpdateUrlData {
 export class UrlsRepository {
   constructor(@InjectRepository(Url) private readonly repo: Repository<Url>) {}
 
-  async create(data: Partial<Url>): Promise<Url> {
+  async create(data: CreateUrlData): Promise<Url> {
     try {
       const url = this.repo.create(data);
       return await this.repo.save(url);
     } catch (error) {
       if (
         error instanceof QueryFailedError &&
-        (error as any).code === '23505'
+        (error as { code?: string }).code === '23505'
       ) {
-        throw new SlugCollisionError(data.slug!);
+        throw new SlugCollisionError(data.slug);
       }
       throw error;
     }

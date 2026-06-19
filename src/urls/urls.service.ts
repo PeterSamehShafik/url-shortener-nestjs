@@ -108,8 +108,6 @@ export class UrlsService {
     );
   }
   async create(dto: CreateUrlDto, userId: string | null = null): Promise<Url> {
-    this.preventSsrf(dto.originalUrl);
-
     if (dto.customSlug && !userId) {
       throw new ForbiddenException(
         'Custom slugs are only available to authenticated users',
@@ -120,6 +118,8 @@ export class UrlsService {
         'ExpiresAt is only available to authenticated users',
       );
     }
+    this.preventSsrf(dto.originalUrl);
+
     const expiresAt = this.resolveExpiry(dto.expiresAt, userId);
 
     // Route to the correct insertion strategy

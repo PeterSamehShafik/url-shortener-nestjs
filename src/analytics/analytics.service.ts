@@ -10,7 +10,7 @@ export class AnalyticsService {
 
   constructor(private readonly analyticsRepo: AnalyticsRepository) {}
 
-  logClick(data: CreateUrlAnalyticData) {
+  logClick(data: CreateUrlAnalyticData): void {
     this.analyticsRepo.create(data).catch((err) => {
       this.logger.error('Failed to log analytics:', err);
     });
