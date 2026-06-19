@@ -13,7 +13,7 @@ import {
   beforeAll,
   afterAll,
 } from '@jest/globals';
-import { UrlAnalytic } from './entities/url-analytic.entity';
+import { UrlAnalytic } from '../analytics/entities/url-analytic.entity';
 dotenv.config({ path: '.env.test' });
 
 describe('UrlsRepository', () => {

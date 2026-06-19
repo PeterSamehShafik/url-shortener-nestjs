@@ -10,8 +10,8 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { UrlAnalytic } from './url-analytic.entity';
 import { UrlTag } from './url-tag.entity';
+import { UrlAnalytic } from '@/analytics/entities/url-analytic.entity';
 
 @Entity('urls')
 export class Url {

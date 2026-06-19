@@ -5,9 +5,10 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Url } from './entities/url.entity';
 import { UrlTag } from './entities/url-tag.entity';
 import { UrlsRepository } from './urls.repository';
+import { AnalyticsModule } from '@/analytics/analytics.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Url, UrlTag])],
+  imports: [TypeOrmModule.forFeature([Url, UrlTag]), AnalyticsModule],
   controllers: [UrlsController],
   providers: [UrlsService, UrlsRepository],
 })

@@ -13,6 +13,7 @@ import { Url } from './entities/url.entity';
 import { UrlsRepository } from './urls.repository';
 import { UpdateUrlDto } from './dto/update-url.dto';
 import { SlugCollisionError } from './errors/slug-collision.error';
+import { AnalyticsService } from '@/analytics/analytics.service';
 
 // outside not to recreate it on every request or every class instantiation
 const PRIVATE_IP_PATTERNS = [
@@ -31,7 +32,28 @@ const generateSlug = customAlphabet(
 
 @Injectable()
 export class UrlsService {
-  constructor(private readonly urlsRepo: UrlsRepository) {}
+  constructor(
+    private readonly urlsRepo: UrlsRepository,
+    private readonly analyticsService: AnalyticsService,
+  ) {}
+
+  async redirect(
+    slug: string,
+    ip: string | null,
+    userAgent: string | null,
+    referer: string | null,
+  ): Promise<string> {
+    const url = await this.findBySlug(slug);
+
+    this.analyticsService.logClick({
+      urlId: url.id,
+      ipAddress: ip,
+      userAgent,
+      referer,
+    });
+
+    return url.originalUrl;
+  }
 
   private async insertWithCustomSlug(
     dto: CreateUrlDto,

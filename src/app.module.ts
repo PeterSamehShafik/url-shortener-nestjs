@@ -3,7 +3,7 @@ import { UrlsModule } from '@/urls/urls.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from './users/entities/user.entity';
 import { Url } from './urls/entities/url.entity';
-import { UrlAnalytic } from './urls/entities/url-analytic.entity';
+import { UrlAnalytic } from './analytics/entities/url-analytic.entity';
 import { UrlTag } from './urls/entities/url-tag.entity';
 
 @Module({

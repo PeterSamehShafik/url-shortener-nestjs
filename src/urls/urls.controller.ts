@@ -9,11 +9,13 @@ import {
   HttpCode,
   Patch,
   Delete,
+  Req,
 } from '@nestjs/common';
 import { UrlsService } from '@/urls/urls.service';
 import { CreateUrlDto } from './dto/create-url.dto';
-import { Response } from 'express';
+import { Response, Request } from 'express';
 import { UpdateUrlDto } from './dto/update-url.dto';
+import { createHash } from 'crypto';
 
 @Controller()
 export class UrlsController {
@@ -43,8 +45,23 @@ export class UrlsController {
   }
 
   @Get(':slug')
-  async redirect(@Param('slug') slug: string, @Res() res: Response) {
-    const url = await this.urlsService.findBySlug(slug);
-    return res.redirect(HttpStatus.MOVED_PERMANENTLY, url.originalUrl);
+  async redirect(
+    @Param('slug') slug: string,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    const userAgent = req.headers['user-agent'] || null;
+    const referer = req.headers['referer'] || null;
+    const hashedIp = req.ip
+      ? createHash('sha256').update(req.ip).digest('hex')
+      : null;
+
+    const originalUrl = await this.urlsService.redirect(
+      slug,
+      hashedIp,
+      userAgent,
+      referer,
+    );
+    return res.redirect(HttpStatus.MOVED_PERMANENTLY, originalUrl);
   }
 }
