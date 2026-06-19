@@ -2,7 +2,7 @@ import { validate } from 'class-validator';
 import { plainToInstance } from 'class-transformer';
 import { IsBoolean } from 'class-validator';
 import { describe, it, expect } from '@jest/globals';
-import { IsOptionalButNotNull } from './Is-optional-but-not-null';
+import { IsOptionalButNotNull } from './is-optional-but-not-null.decorator';
 class TestDto {
   @IsOptionalButNotNull()
   @IsBoolean({ message: 'value must be a boolean' })

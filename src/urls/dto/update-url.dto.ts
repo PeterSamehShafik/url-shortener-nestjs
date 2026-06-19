@@ -1,5 +1,5 @@
 import { IsFutureIsoDate } from '@/common/decorators/is-future-iso-date.decorator';
-import { IsOptionalButNotNull } from '@/common/decorators/Is-optional-but-not-null';
+import { IsOptionalButNotNull } from '@/common/decorators/is-optional-but-not-null.decorator';
 import { IsBoolean, IsOptional } from 'class-validator';
 
 export class UpdateUrlDto {
