@@ -1,18 +1,32 @@
 import { Module } from '@nestjs/common';
-import { UrlsModule } from '@/urls/urls.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { User } from './users/entities/user.entity';
-import { Url } from './urls/entities/url.entity';
-import { UrlAnalytic } from './analytics/entities/url-analytic.entity';
-import { UrlTag } from './urls/entities/url-tag.entity';
-import { RefreshToken } from './auth/entities/refresh-token.entity';
+
+// Feature Modules
+import { AuthModule } from '@/auth/auth.module';
+import { UsersModule } from '@/users/users.module';
+import { UrlsModule } from '@/urls/urls.module';
+import { AnalyticsModule } from '@/analytics/analytics.module';
+
+// Entities
+import { User } from '@/users/entities/user.entity';
+import { Url } from '@/urls/entities/url.entity';
+import { UrlAnalytic } from '@/analytics/entities/url-analytic.entity';
+import { UrlTag } from '@/urls/entities/url-tag.entity';
+import { RefreshToken } from '@/auth/entities/refresh-token.entity';
+import { ConfigModule } from '@nestjs/config';
+import { envValidationSchema } from './config/env.validation';
 
 @Module({
   imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      validationSchema: envValidationSchema,
+      validationOptions: { abortEarly: false },
+    }),
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: process.env.DB_HOST ?? 'localhost',
-      port: Number(process.env.DB_PORT) ?? 5432,
+      port: Number(process.env.DB_PORT) || 5432,
       username: process.env.DB_USERNAME ?? 'postgres',
       password: process.env.DB_PASSWORD ?? 'postgres',
       database: process.env.DB_NAME ?? 'url_shortener',
@@ -22,6 +36,9 @@ import { RefreshToken } from './auth/entities/refresh-token.entity';
       migrationsRun: false,
       logging: true,
     }),
+    AnalyticsModule,
+    UsersModule,
+    AuthModule,
     UrlsModule,
   ],
 })

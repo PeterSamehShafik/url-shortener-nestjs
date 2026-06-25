@@ -22,6 +22,7 @@ export class RefreshToken {
   @JoinColumn({ name: 'userId' })
   user!: User;
 
+  @Index({ unique: true })
   @Column({ length: 64 })
   tokenHash!: string;
 

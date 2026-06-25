@@ -6,7 +6,7 @@ import { EmailAlreadyExistsError } from './errors/email-already-exists.error';
 
 export interface CreateUserData {
   email: string;
-  password: string | null;
+  passwordHash: string;
 }
 
 @Injectable()
@@ -16,7 +16,17 @@ export class UsersRepository {
   ) {}
 
   findByEmail(email: string): Promise<User | null> {
-    return this.repo.findOne({ where: { email } });
+    return this.repo.findOne({
+      where: { email },
+      select: {
+        id: true,
+        email: true,
+        passwordHash: true,
+        role: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
   }
 
   findById(id: string): Promise<User | null> {
@@ -26,7 +36,7 @@ export class UsersRepository {
   async create(data: CreateUserData): Promise<User> {
     try {
       const user = this.repo.create(data);
-      return this.repo.save(user);
+      return await this.repo.save(user);
     } catch (error) {
       if (
         error instanceof QueryFailedError &&

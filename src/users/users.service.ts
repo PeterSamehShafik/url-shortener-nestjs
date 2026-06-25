@@ -13,9 +13,9 @@ export class UsersService {
   findById(id: string) {
     return this.usersRepo.findById(id);
   }
-  async create(email: string, password: string | null): Promise<User> {
+  async create(email: string, passwordHash: string): Promise<User> {
     try {
-      return await this.usersRepo.create({ email, password });
+      return await this.usersRepo.create({ email, passwordHash });
     } catch (error) {
       if (error instanceof EmailAlreadyExistsError) {
         throw new ConflictException(
