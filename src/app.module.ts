@@ -15,6 +15,9 @@ import { UrlTag } from '@/urls/entities/url-tag.entity';
 import { RefreshToken } from '@/auth/entities/refresh-token.entity';
 import { ConfigModule } from '@nestjs/config';
 import { envValidationSchema } from './config/env.validation';
+import { APP_GUARD } from '@nestjs/core';
+import { JwtAuthGuard } from './auth/guards/jwt.auth.guard';
+import { RolesGuard } from './auth/guards/roles.guard';
 
 @Module({
   imports: [
@@ -40,6 +43,16 @@ import { envValidationSchema } from './config/env.validation';
     UsersModule,
     AuthModule,
     UrlsModule,
+  ],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: RolesGuard,
+    },
   ],
 })
 export class AppModule {}

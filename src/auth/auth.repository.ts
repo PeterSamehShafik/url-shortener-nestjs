@@ -26,7 +26,10 @@ export class AuthRepository {
   }
 
   async deleteById(id: string): Promise<void> {
-    await this.repo.delete(id);
+    const result = await this.repo.delete(id);
+    if (result.affected === 0) {
+      throw new Error(`RefreshToken with id ${id} not found`);
+    }
   }
 
   async deleteAllForUser(userId: string): Promise<void> {

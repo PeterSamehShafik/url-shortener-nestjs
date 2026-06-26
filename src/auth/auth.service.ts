@@ -9,10 +9,10 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { createHash, randomBytes } from 'crypto';
 import ms, { StringValue } from 'ms';
+import { JwtPayload } from './strategies/jwt.strategy';
 
 const DUMMY_HASH =
-  'abcdef0123456789abcdef0123456789.abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789';
-
+  '8d361ac8f882bf84473f25e7f748a552.e2a0ec7d13e4bb0cea026569e3211118be1ead2dc804ce5dc7d523404c7cc273';
 export interface SafeUser {
   id: string;
   email: string;
@@ -40,14 +40,18 @@ export class AuthService {
     const passwordHash = await PasswordUtil.hash(password);
     const user = await this.userService.create(email, passwordHash);
 
-    const accessToken = this.generateAccessToken(user.id, user.role);
     const rawRefreshToken = this.generateRefreshToken();
 
-    await this.authRepo.create({
+    const refreshToken = await this.authRepo.create({
       userId: user.id,
       tokenHash: this.hashToken(rawRefreshToken),
       expiresAt: this.getRefreshTokenExpiresAt(),
     });
+    const accessToken = this.generateAccessToken(
+      user.id,
+      user.role,
+      refreshToken.id,
+    );
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { passwordHash: _passwordHash, ...safeUser } = user;
@@ -64,13 +68,18 @@ export class AuthService {
       throw new UnauthorizedException('Invalid email or password');
     }
 
-    const accessToken = this.generateAccessToken(user.id, user.role);
     const rawRefreshToken = this.generateRefreshToken();
-    await this.authRepo.create({
+
+    const refreshToken = await this.authRepo.create({
       userId: user.id,
       tokenHash: this.hashToken(rawRefreshToken),
       expiresAt: this.getRefreshTokenExpiresAt(),
     });
+    const accessToken = this.generateAccessToken(
+      user.id,
+      user.role,
+      refreshToken.id,
+    );
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { passwordHash: _passwordHash, ...safeUser } = user;
@@ -78,9 +87,63 @@ export class AuthService {
     return { user: safeUser, accessToken, refreshToken: rawRefreshToken };
   }
 
-  private generateAccessToken(userId: string, role: userRole): string {
+  async refresh(rawToken: string): Promise<AuthResult> {
+    const tokenHash = this.hashToken(rawToken);
+    const existing = await this.authRepo.findByTokenHash(tokenHash);
+
+    if (!existing) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    if (existing.expiresAt < new Date()) {
+      await this.authRepo.deleteById(existing.id);
+      throw new UnauthorizedException('Refresh token expired');
+    }
+
+    await this.authRepo.deleteById(existing.id);
+
+    const user = await this.userService.findById(existing.userId);
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    const rawRefreshToken = this.generateRefreshToken();
+
+    const refreshToken = await this.authRepo.create({
+      userId: user.id,
+      tokenHash: this.hashToken(rawRefreshToken),
+      expiresAt: this.getRefreshTokenExpiresAt(),
+    });
+    const accessToken = this.generateAccessToken(
+      user.id,
+      user.role,
+      refreshToken.id,
+    );
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { passwordHash: _ph, ...safeUser } = user;
+
+    return { user: safeUser, accessToken, refreshToken: rawRefreshToken };
+  }
+
+  async logout(rawAccessToken: string): Promise<void> {
+    try {
+      const payload = this.jwtService.verify<JwtPayload>(rawAccessToken, {
+        secret: this.configService.get<string>('JWT_SECRET'),
+      });
+      await this.authRepo.deleteById(payload.sid);
+    } catch {
+      // Token invalid, expired, or already gone — nothing to delete
+      // Logout still succeeds — cookies are cleared regardless
+    }
+  }
+
+  private generateAccessToken(
+    userId: string,
+    role: userRole,
+    sid: string,
+  ): string {
     return this.jwtService.sign(
-      { sub: userId, role },
+      { sub: userId, role, sid },
       { secret: this.configService.get<string>('JWT_SECRET') }, //expires inherit from jwtModule
     );
   }
