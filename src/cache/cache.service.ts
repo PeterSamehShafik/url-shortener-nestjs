@@ -16,6 +16,15 @@ export class CacheService {
 
   constructor(@Inject(CACHE_MANAGER) private readonly cacheManager: Cache) {}
 
+  async populateUrl(slug: string, url: Url): Promise<void> {
+    const payload: CachedUrl = {
+      id: url.id,
+      originalUrl: url.originalUrl,
+      expiresAt: url.expiresAt,
+    };
+    await this.setUrl(slug, payload);
+  }
+
   private getSlugKey(slug: string): string {
     return `url:slug:${slug}`;
   }
@@ -27,7 +36,9 @@ export class CacheService {
 
   async getUrl(slug: string): Promise<CachedUrl | null> {
     try {
-      const cached = await this.cacheManager.get<Url>(this.getSlugKey(slug));
+      const cached = await this.cacheManager.get<CachedUrl>(
+        this.getSlugKey(slug),
+      );
       if (!cached) return null;
 
       // Sliding TTL — reset expiry on every hit for non-expiring URLs
@@ -45,7 +56,7 @@ export class CacheService {
     }
   }
 
-  async setUrl(slug: string, url: Url): Promise<void> {
+  async setUrl(slug: string, url: CachedUrl): Promise<void> {
     try {
       const ttl = this.getTtl(url.expiresAt);
       if (ttl === 0) return;

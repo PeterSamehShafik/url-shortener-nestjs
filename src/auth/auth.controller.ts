@@ -16,6 +16,13 @@ import { Public } from '@/common/decorators/public.decorator';
 import { SafeUser } from './auth.service';
 import { ConfigService } from '@nestjs/config';
 import ms, { StringValue } from 'ms';
+import {
+  hours,
+  minutes,
+  seconds,
+  SkipThrottle,
+  Throttle,
+} from '@nestjs/throttler';
 
 const cookieOptions = {
   httpOnly: true,
@@ -31,6 +38,23 @@ export class AuthController {
   ) {}
 
   @Public()
+  @Throttle({
+    short: {
+      limit: 2,
+      ttl: seconds(60),
+      blockDuration: minutes(30),
+    },
+    medium: {
+      limit: 3,
+      ttl: hours(1),
+      blockDuration: hours(2),
+    },
+    long: {
+      limit: 5,
+      ttl: hours(24),
+      blockDuration: hours(48),
+    },
+  })
   @Post('register')
   async register(
     @Body() dto: RegisterDto,
@@ -43,7 +67,25 @@ export class AuthController {
     this.setAuthCookies(res, accessToken, refreshToken);
     return { user };
   }
+
   @Public()
+  @Throttle({
+    short: {
+      limit: 3,
+      ttl: seconds(60),
+      blockDuration: minutes(15),
+    },
+    medium: {
+      limit: 10,
+      ttl: minutes(15),
+      blockDuration: hours(1),
+    },
+    long: {
+      limit: 100,
+      ttl: hours(24),
+      blockDuration: hours(24),
+    },
+  })
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(
@@ -59,6 +101,7 @@ export class AuthController {
   }
 
   @Public()
+  @SkipThrottle({ short: true, medium: true })
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   async refresh(
@@ -78,6 +121,7 @@ export class AuthController {
   }
 
   @Public()
+  @SkipThrottle({ short: true, medium: true })
   @Post('logout')
   @HttpCode(HttpStatus.OK)
   async logout(

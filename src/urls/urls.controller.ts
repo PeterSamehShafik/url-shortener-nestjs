@@ -10,6 +10,7 @@ import {
   Patch,
   Delete,
   Req,
+  UseGuards,
 } from '@nestjs/common';
 import { UrlsService } from '@/urls/urls.service';
 import { CreateUrlDto } from './dto/create-url.dto';
@@ -20,12 +21,14 @@ import { Public } from '@/common/decorators/public.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { RequestUser } from '@/auth/strategies/jwt.strategy';
 import { OptionalAuth } from '@/common/decorators/optional-auth.decorator';
+import { UrlThrottlerGuard } from './guards/url-throttler.guard';
 
 @Controller()
 export class UrlsController {
   constructor(private readonly urlsService: UrlsService) {}
 
   @OptionalAuth()
+  @UseGuards(UrlThrottlerGuard)
   @Post('urls')
   @HttpCode(HttpStatus.CREATED)
   create(

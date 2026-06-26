@@ -16,10 +16,18 @@ import { RefreshToken } from '@/auth/entities/refresh-token.entity';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { envValidationSchema } from './config/env.validation';
 import { APP_GUARD } from '@nestjs/core';
+
+// Guards
 import { JwtAuthGuard } from './auth/guards/jwt.auth.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
+
+// Cache
 import { CacheModule } from '@nestjs/cache-manager';
 import KeyvRedis from '@keyv/redis';
+import { hours, minutes, seconds, ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
+import Redis from 'ioredis';
+import { CustomThrottlerGuard } from './auth/guards/throttler.guard';
 
 @Module({
   imports: [
@@ -54,6 +62,40 @@ import KeyvRedis from '@keyv/redis';
       migrationsRun: false,
       logging: true,
     }),
+    ThrottlerModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        storage: new ThrottlerStorageRedisService(
+          new Redis({
+            host: configService.get<string>('REDIS_HOST'),
+            port: configService.get<number>('REDIS_PORT'),
+          }),
+        ),
+        throttlers: [
+          {
+            name: 'short',
+            ttl: seconds(60),
+            limit: 30,
+            blockDuration: minutes(2),
+          },
+          {
+            name: 'medium',
+            ttl: minutes(60),
+            limit: 500,
+            blockDuration: minutes(30),
+          },
+          {
+            name: 'long',
+            ttl: hours(24),
+            limit: 2000,
+            blockDuration: hours(6),
+          },
+        ],
+        errorMessage: 'Wow! Slow down, Too Many Requests',
+        setHeaders: false,
+      }),
+    }),
     AnalyticsModule,
     UsersModule,
     AuthModule,
@@ -67,6 +109,10 @@ import KeyvRedis from '@keyv/redis';
     {
       provide: APP_GUARD,
       useClass: RolesGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: CustomThrottlerGuard,
     },
   ],
 })
