@@ -14,6 +14,8 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { Public } from '@/common/decorators/public.decorator';
 import { SafeUser } from './auth.service';
+import { ConfigService } from '@nestjs/config';
+import ms, { StringValue } from 'ms';
 
 const cookieOptions = {
   httpOnly: true,
@@ -23,7 +25,10 @@ const cookieOptions = {
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly configService: ConfigService,
+  ) {}
 
   @Public()
   @Post('register')
@@ -93,16 +98,23 @@ export class AuthController {
     accessToken: string,
     refreshToken: string,
   ): void {
+    const accessExpiry = ms(
+      this.configService.get<string>('JWT_ACCESS_EXPIRY') as StringValue,
+    );
+    const refreshExpiry = ms(
+      this.configService.get<string>('JWT_REFRESH_EXPIRY') as StringValue,
+    );
+
     res.cookie('accessToken', accessToken, {
       ...cookieOptions,
       path: '/',
-      maxAge: 15 * 60 * 1000, // 15 minutes in ms
+      maxAge: accessExpiry,
     });
 
     res.cookie('refreshToken', refreshToken, {
       ...cookieOptions,
       path: '/auth/refresh',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in ms
+      maxAge: refreshExpiry,
     });
   }
 }
