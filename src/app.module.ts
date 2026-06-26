@@ -13,11 +13,13 @@ import { Url } from '@/urls/entities/url.entity';
 import { UrlAnalytic } from '@/analytics/entities/url-analytic.entity';
 import { UrlTag } from '@/urls/entities/url-tag.entity';
 import { RefreshToken } from '@/auth/entities/refresh-token.entity';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { envValidationSchema } from './config/env.validation';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './auth/guards/jwt.auth.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
+import { CacheModule } from '@nestjs/cache-manager';
+import KeyvRedis from '@keyv/redis';
 
 @Module({
   imports: [
@@ -25,6 +27,19 @@ import { RolesGuard } from './auth/guards/roles.guard';
       isGlobal: true,
       validationSchema: envValidationSchema,
       validationOptions: { abortEarly: false },
+    }),
+    CacheModule.registerAsync({
+      isGlobal: true,
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => {
+        const host = configService.get<string>('REDIS_HOST');
+        const port = configService.get<number>('REDIS_PORT');
+        return {
+          stores: [new KeyvRedis(`redis://${host}:${port}`)],
+          ttl: 24 * 60 * 60 * 1000,
+        };
+      },
     }),
     TypeOrmModule.forRoot({
       type: 'postgres',

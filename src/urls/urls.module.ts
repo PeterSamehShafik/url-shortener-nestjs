@@ -6,9 +6,14 @@ import { Url } from './entities/url.entity';
 import { UrlTag } from './entities/url-tag.entity';
 import { UrlsRepository } from './urls.repository';
 import { AnalyticsModule } from '@/analytics/analytics.module';
+import { CacheModule } from '@/cache/cache.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Url, UrlTag]), AnalyticsModule],
+  imports: [
+    TypeOrmModule.forFeature([Url, UrlTag]),
+    AnalyticsModule,
+    CacheModule,
+  ],
   controllers: [UrlsController],
   providers: [UrlsService, UrlsRepository],
 })

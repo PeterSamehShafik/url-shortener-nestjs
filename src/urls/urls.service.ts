@@ -14,6 +14,7 @@ import { UrlsRepository } from './urls.repository';
 import { UpdateUrlDto } from './dto/update-url.dto';
 import { SlugCollisionError } from './errors/slug-collision.error';
 import { AnalyticsService } from '@/analytics/analytics.service';
+import { CacheService } from '@/cache/cache.service';
 
 // outside not to recreate it on every request or every class instantiation
 const PRIVATE_IP_PATTERNS = [
@@ -35,6 +36,7 @@ export class UrlsService {
   constructor(
     private readonly urlsRepo: UrlsRepository,
     private readonly analyticsService: AnalyticsService,
+    private readonly cacheService: CacheService,
   ) {}
 
   async redirect(
@@ -43,16 +45,28 @@ export class UrlsService {
     userAgent: string | null,
     referer: string | null,
   ): Promise<string> {
-    const url = await this.findBySlug(slug);
+    let originalUrl: string;
+    let urlId: string;
+
+    const cached = await this.cacheService.getUrl(slug);
+    if (cached) {
+      originalUrl = cached.originalUrl;
+      urlId = cached.id;
+    } else {
+      const url = await this.findBySlug(slug);
+      originalUrl = url.originalUrl;
+      urlId = url.id;
+      await this.cacheService.setUrl(slug, url);
+    }
 
     this.analyticsService.logClick({
-      urlId: url.id,
+      urlId: urlId,
       ipAddress: ip,
       userAgent,
       referer,
     });
 
-    return url.originalUrl;
+    return originalUrl;
   }
 
   private async insertWithCustomSlug(
@@ -162,6 +176,8 @@ export class UrlsService {
       isActive: dto.isActive,
       expiresAt: dto.expiresAt!,
     });
+
+    await this.cacheService.delUrl(url.slug);
     return updated!;
   }
 
@@ -171,6 +187,8 @@ export class UrlsService {
       throw new NotFoundException(`URL with id ${urlId} not found`);
     }
     await this.urlsRepo.delete(urlId);
+
+    await this.cacheService.delUrl(url.slug);
   }
 
   // ____Helpers_______________________________________
