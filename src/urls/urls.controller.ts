@@ -16,34 +16,47 @@ import { CreateUrlDto } from './dto/create-url.dto';
 import { Response, Request } from 'express';
 import { UpdateUrlDto } from './dto/update-url.dto';
 import { createHash } from 'crypto';
+import { Public } from '@/common/decorators/public.decorator';
+import { CurrentUser } from '@/common/decorators/current-user.decorator';
+import { RequestUser } from '@/auth/strategies/jwt.strategy';
+import { OptionalAuth } from '@/common/decorators/optional-auth.decorator';
 
 @Controller()
 export class UrlsController {
   constructor(private readonly urlsService: UrlsService) {}
 
+  @OptionalAuth()
   @Post('urls')
   @HttpCode(HttpStatus.CREATED)
-  create(@Body() createUrlDto: CreateUrlDto) {
-    return this.urlsService.create(createUrlDto, null);
+  create(
+    @Body() createUrlDto: CreateUrlDto,
+    @CurrentUser() user?: RequestUser,
+  ) {
+    console.log(user);
+    return this.urlsService.create(createUrlDto, user?.userId ?? null);
   }
 
   @Get('urls')
-  findAll() {
-    return this.urlsService.findAllByUser('user-id');
+  findAll(@CurrentUser() user: RequestUser) {
+    return this.urlsService.findAllByUser(user.userId);
   }
 
   @Patch('urls/:id')
-  update(@Param('id') id: string, @Body() dto: UpdateUrlDto) {
-    return this.urlsService.update(id, dto, 'user-id', 'user');
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateUrlDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.urlsService.update(id, dto, user.userId, user.role);
   }
 
   @Delete('urls/:id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  delete(@Param('id') id: string) {
-    // userId and role will come from JWT in Phase 3
-    return this.urlsService.delete(id, 'user-id', 'user');
+  delete(@Param('id') id: string, @CurrentUser() user: RequestUser) {
+    return this.urlsService.delete(id, user.userId, user.role);
   }
 
+  @Public()
   @Get(':slug')
   async redirect(
     @Param('slug') slug: string,
