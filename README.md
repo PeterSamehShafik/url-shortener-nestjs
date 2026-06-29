@@ -103,9 +103,9 @@ Three simultaneous sliding windows prevent both burst abuse and sustained abuse:
 
 | Tier | Window | Global Limit |
 |---|---|---|
-| short | 1 minute | 30 requests |
-| medium | 1 hour | 500 requests |
-| long | 24 hours | 2000 requests |
+| short | 1 minute | 10 requests |
+| medium | 1 hour | 100 requests |
+| long | 24 hours | 1000 requests |
 
 `POST /urls` has differentiated limits:
 
