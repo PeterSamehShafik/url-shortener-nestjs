@@ -204,6 +204,32 @@ npm run migration:run
 npm run start:dev
 ```
 
+### Database Migrations
+ 
+Migrations are managed with the TypeORM CLI via a dedicated `typeorm.config.ts` that runs outside the NestJS container using `dotenv` directly — keeping the CLI boundary clean and separate from the NestJS DI system.
+ 
+```bash
+# Run all pending migrations
+npm run migration:run
+ 
+# Generate a new migration (TypeORM diffs entities vs current schema)
+npm run migration:generate
+```
+ 
+Migration history:
+ 
+| Migration | Description |
+|---|---|
+| `InitialSchema` | Users, URLs, URL analytics, URL tags base schema |
+| `AddRefreshTokens` | Refresh token table with `userId` FK and `expiresAt` |
+| `RefreshTokensAddIndexOnToken` | Unique index on `tokenHash` — hot-path lookup column |
+| `RefreshTokensAddIndexOnExpiresAt` | Index on `expiresAt` — supports cron cleanup queries |
+| `CompositeIndexOnAnalytics` | Composite index on `(urlId, clickedAt)` — analytics query optimization |
+ 
+> Never use `synchronize: true` in production. All schema changes go through versioned migrations.
+ 
+
+
 ### Environment Variables
 
 ```env
@@ -246,17 +272,21 @@ REDIS_PORT=6379
 - No `process.env` access in application code — startup validation via Joi
 
 ---
-
 ## What I Learned Building This
-
+ 
 This project was built as a structured deep-dive back into backend engineering after two years away. Every decision was made deliberately:
+ 
+- Why `scrypt` over `bcrypt` — memory-hard hashing resists GPU brute-force without external dependencies
+- Why insert-and-catch over check-then-insert for slug generation — eliminates the race condition window entirely
+- Why cache-aside over write-through for this use case — reads dominate, writes are rare, TTL handles invalidation naturally
+- Why multi-tier rate limiting catches what single-window doesn't — a patient bot can stay under a per-minute cap indefinitely
+- Why the repository layer throws domain errors while the service layer throws HTTP exceptions — clean separation of data concerns from transport concerns
+- Why `sid` in the access token enables logout without the refresh cookie — session identity travels with the token that's always present
+- Why composite index column order matters — equality filter first, range filter second, or the index is nearly useless
+- Why `synchronize: false` and versioned migrations in production — `synchronize: true` can silently drop columns on entity changes
+- Why `typeorm.config.ts` uses `dotenv` directly instead of `ConfigService` — the CLI runs outside the NestJS container, DI is not available
+- Why batch deletion in cron jobs — a single `DELETE WHERE expiresAt < NOW()` on a large table causes a full table lock
+- Why `trust proxy` matters for rate limiting — without it, every request behind a reverse proxy has the same IP, making IP-based limiting useless
 
-- Why `scrypt` over `bcrypt`
-- Why insert-and-catch over check-then-insert for slug generation
-- Why cache-aside over write-through for this use case
-- Why multi-tier rate limiting catches what single-window doesn't
-- Why the repository layer throws domain errors while the service layer throws HTTP exceptions
-- Why `sid` in the access token enables logout without the refresh cookie
-- Why composite index column order matters for query performance
 
 The goal was not just working code but production-grade thinking at every layer.
