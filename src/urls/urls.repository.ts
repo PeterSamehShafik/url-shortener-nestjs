@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Url } from './entities/url.entity';
-import { LessThan, QueryFailedError, Repository } from 'typeorm';
+import { IsNull, LessThan, QueryFailedError, Repository } from 'typeorm';
 import { SlugCollisionError } from './errors/slug-collision.error';
 
 export interface CreateUrlData {
@@ -62,7 +62,7 @@ export class UrlsRepository {
   async deleteExpired(batchSize: number): Promise<number> {
     const expiredRecords = await this.repo.find({
       select: { id: true },
-      where: { expiresAt: LessThan(new Date()) },
+      where: { expiresAt: LessThan(new Date()), userId: IsNull() },
       take: batchSize,
     });
     if (expiredRecords.length === 0) return 0;
