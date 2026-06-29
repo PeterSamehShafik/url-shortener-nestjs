@@ -6,8 +6,13 @@ import {
   Matches,
 } from 'class-validator';
 import { Transform } from 'class-transformer';
+import { ApiProperty } from '@nestjs/swagger';
 
 export class RegisterDto {
+  @ApiProperty({
+    example: 'user@example.com',
+    description: 'User email address',
+  })
   @IsEmail({}, { message: 'Please provide a valid email address.' })
   @IsNotEmpty({ message: 'Email is required.' })
   @Transform(({ value }: { value: unknown }) =>
@@ -15,6 +20,11 @@ export class RegisterDto {
   )
   email!: string;
 
+  @ApiProperty({
+    example: 'Password123!',
+    description:
+      'Must be at least 8 characters with uppercase, lowercase, number and special character',
+  })
   @IsString()
   @IsNotEmpty({ message: 'Password is required.' })
   @MinLength(8, { message: 'Password must be at least 8 characters long.' })

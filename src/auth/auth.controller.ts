@@ -23,7 +23,18 @@ import {
   SkipThrottle,
   Throttle,
 } from '@nestjs/throttler';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBadRequestResponse,
+  ApiUnauthorizedResponse,
+  ApiConflictResponse,
+  ApiTooManyRequestsResponse,
+  ApiCookieAuth,
+} from '@nestjs/swagger';
 
+@ApiTags('Authentication')
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -33,21 +44,22 @@ export class AuthController {
 
   @Public()
   @Throttle({
-    short: {
-      limit: 2,
-      ttl: seconds(60),
-      blockDuration: minutes(30),
-    },
-    medium: {
-      limit: 3,
-      ttl: hours(1),
-      blockDuration: hours(2),
-    },
-    long: {
-      limit: 5,
-      ttl: hours(24),
-      blockDuration: hours(48),
-    },
+    short: { limit: 2, ttl: seconds(60), blockDuration: minutes(30) },
+    medium: { limit: 3, ttl: hours(1), blockDuration: hours(2) },
+    long: { limit: 5, ttl: hours(24), blockDuration: hours(48) },
+  })
+  @ApiOperation({ summary: 'Register a new user account' })
+  @ApiResponse({
+    status: 201,
+    description:
+      'User successfully created. Access and refresh cookies issued.',
+  })
+  @ApiBadRequestResponse({
+    description: 'Validation failed or malformed request payload.',
+  })
+  @ApiConflictResponse({ description: 'Email address is already registered.' })
+  @ApiTooManyRequestsResponse({
+    description: 'Rate limit exceeded. Registration attempt blocked.',
   })
   @Post('register')
   async register(
@@ -64,21 +76,23 @@ export class AuthController {
 
   @Public()
   @Throttle({
-    short: {
-      limit: 3,
-      ttl: seconds(60),
-      blockDuration: minutes(15),
-    },
-    medium: {
-      limit: 10,
-      ttl: minutes(15),
-      blockDuration: hours(1),
-    },
-    long: {
-      limit: 20,
-      ttl: hours(24),
-      blockDuration: hours(24),
-    },
+    short: { limit: 3, ttl: seconds(60), blockDuration: minutes(15) },
+    medium: { limit: 10, ttl: minutes(15), blockDuration: hours(1) },
+    long: { limit: 20, ttl: hours(24), blockDuration: hours(24) },
+  })
+  @ApiOperation({ summary: 'Authenticate user and issue tokens' })
+  @ApiResponse({
+    status: 200,
+    description:
+      'Authentication successful. Access and refresh cookies issued.',
+  })
+  @ApiBadRequestResponse({
+    description:
+      'Validation failed due to missing or invalid credentials format.',
+  })
+  @ApiUnauthorizedResponse({ description: 'Invalid email or password.' })
+  @ApiTooManyRequestsResponse({
+    description: 'Rate limit exceeded. Login functionality temporarily locked.',
   })
   @Post('login')
   @HttpCode(HttpStatus.OK)
@@ -96,6 +110,19 @@ export class AuthController {
 
   @Public()
   @SkipThrottle({ short: true, medium: true })
+  @ApiCookieAuth('refreshToken') // Documents that this specific cookie is expected
+  @ApiOperation({
+    summary:
+      'Rotate access and refresh tokens using existing refresh token cookie',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Tokens rotated successfully. Refreshed cookies issued.',
+  })
+  @ApiUnauthorizedResponse({
+    description:
+      'Missing, expired, or invalid refresh token verification status.',
+  })
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   async refresh(
@@ -116,6 +143,13 @@ export class AuthController {
 
   @Public()
   @SkipThrottle({ short: true, medium: true })
+  @ApiCookieAuth('accessToken') // Documents that the session access cookie is consumed
+  @ApiOperation({ summary: 'Log out current session and invalidate cookies' })
+  @ApiResponse({
+    status: 200,
+    description:
+      'Session successfully revoked. Authentication cookies wiped clean.',
+  })
   @Post('logout')
   @HttpCode(HttpStatus.OK)
   async logout(
