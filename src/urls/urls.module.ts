@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { UrlsController } from './urls.controller';
 import { UrlsService } from './urls.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -11,7 +11,7 @@ import { CacheModule } from '@/cache/cache.module';
 @Module({
   imports: [
     TypeOrmModule.forFeature([Url, UrlTag]),
-    AnalyticsModule,
+    forwardRef(() => AnalyticsModule),
     CacheModule,
   ],
   controllers: [UrlsController],

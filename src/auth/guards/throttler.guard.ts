@@ -13,9 +13,7 @@ export class CustomThrottlerGuard extends ThrottlerGuard {
     if (req.user?.userId) {
       return Promise.resolve(`throttler:user:${req.user.userId}`);
     }
-    return Promise.resolve(
-      `throttler:ip:${req.headers['x-forwarded-for'] || req.ip}`,
-    );
+    return Promise.resolve(`throttler:ip:${req.ip}`);
   }
 
   protected async handleRequest(

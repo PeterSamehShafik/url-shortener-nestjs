@@ -20,10 +20,14 @@ import { Public } from '@/common/decorators/public.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { RequestUser } from '@/auth/strategies/jwt.strategy';
 import { OptionalAuth } from '@/common/decorators/optional-auth.decorator';
+import { AnalyticsService } from '@/analytics/analytics.service';
 
 @Controller()
 export class UrlsController {
-  constructor(private readonly urlsService: UrlsService) {}
+  constructor(
+    private readonly urlsService: UrlsService,
+    private readonly analyticsService: AnalyticsService,
+  ) {}
 
   @OptionalAuth()
   @Post('urls')
@@ -76,5 +80,10 @@ export class UrlsController {
       referer,
     );
     return res.redirect(HttpStatus.MOVED_PERMANENTLY, originalUrl);
+  }
+
+  @Get(':id/analytics')
+  async getAnalytics(@Param('id') id: string) {
+    return await this.analyticsService.getUrlAnalytics(id);
   }
 }

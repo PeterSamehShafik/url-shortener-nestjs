@@ -1,7 +1,9 @@
 import {
   ConflictException,
   ForbiddenException,
+  forwardRef,
   GoneException,
+  Inject,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -35,8 +37,9 @@ const generateSlug = customAlphabet(
 export class UrlsService {
   constructor(
     private readonly urlsRepo: UrlsRepository,
-    private readonly analyticsService: AnalyticsService,
     private readonly cacheService: CacheService,
+    @Inject(forwardRef(() => AnalyticsService))
+    private readonly analyticsService: AnalyticsService,
   ) {}
 
   async redirect(
@@ -160,6 +163,10 @@ export class UrlsService {
 
   findAllByUser(userId: string): Promise<Url[]> {
     return this.urlsRepo.findAllByUserId(userId);
+  }
+
+  findById(id: string): Promise<Url | null> {
+    return this.urlsRepo.findById(id);
   }
 
   async update(

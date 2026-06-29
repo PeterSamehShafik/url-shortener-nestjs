@@ -10,11 +10,11 @@ import {
 import { Url } from '@/urls/entities/url.entity';
 
 @Entity('url_analytics')
+@Index(['urlId', 'clickedAt'])
 export class UrlAnalytic {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @Index()
   @Column({ type: 'uuid' })
   urlId!: string;
 

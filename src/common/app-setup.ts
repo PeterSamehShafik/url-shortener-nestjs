@@ -1,9 +1,12 @@
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { ValidationPipe } from '@nestjs/common';
 import { HttpExceptionFilter } from '@/common/filters/http-exception.filter';
 import { TransformInterceptor } from '@/common/interceptors/transform.interceptor';
 import cookieParser from 'cookie-parser';
+import { NestExpressApplication } from '@nestjs/platform-express';
 
-export function applyAppSetup(app: INestApplication): void {
+export function applyAppSetup(app: NestExpressApplication): void {
+  app.set('trust proxy', 1);
+
   app.use(cookieParser());
 
   app.useGlobalPipes(
