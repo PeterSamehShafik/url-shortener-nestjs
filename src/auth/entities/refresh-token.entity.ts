@@ -26,6 +26,7 @@ export class RefreshToken {
   @Column({ length: 64 })
   tokenHash!: string;
 
+  @Index()
   @Column({ type: 'timestamptz' })
   expiresAt!: Date;
 
