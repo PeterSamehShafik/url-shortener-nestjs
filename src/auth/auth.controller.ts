@@ -24,12 +24,6 @@ import {
   Throttle,
 } from '@nestjs/throttler';
 
-const cookieOptions = {
-  httpOnly: true,
-  sameSite: 'strict' as const,
-  secure: process.env.NODE_ENV === 'production',
-};
-
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -148,7 +142,11 @@ export class AuthController {
     const refreshExpiry = ms(
       this.configService.get<string>('JWT_REFRESH_EXPIRY') as StringValue,
     );
-
+    const cookieOptions = {
+      httpOnly: true,
+      sameSite: 'strict' as const,
+      secure: this.configService.get<string>('NODE_ENV') === 'production',
+    };
     res.cookie('accessToken', accessToken, {
       ...cookieOptions,
       path: '/',

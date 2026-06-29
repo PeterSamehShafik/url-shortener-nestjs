@@ -1,27 +1,17 @@
-import {
-  forwardRef,
-  Inject,
-  Injectable,
-  Logger,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { AnalyticsRepository } from './analytics.repository';
 import { createHash } from 'crypto';
 import {
   AnalyticsResponse,
   CreateUrlAnalyticData,
 } from './interfaces/analytics.interface';
-import { UrlsService } from '@/urls/urls.service';
+import { Url } from '@/urls/entities/url.entity';
 
 @Injectable()
 export class AnalyticsService {
   private readonly logger = new Logger(AnalyticsService.name);
 
-  constructor(
-    private readonly analyticsRepo: AnalyticsRepository,
-    @Inject(forwardRef(() => UrlsService))
-    private readonly urlsService: UrlsService,
-  ) {}
+  constructor(private readonly analyticsRepo: AnalyticsRepository) {}
 
   logClick(data: CreateUrlAnalyticData): void {
     this.processAndSaveClick(data).catch((err) => {
@@ -55,27 +45,26 @@ export class AnalyticsService {
     }
   }
 
-  async getUrlAnalytics(urlId: string): Promise<AnalyticsResponse> {
-    const urlEntity = await this.urlsService.findById(urlId);
-    if (!urlEntity) {
-      throw new NotFoundException(`URL with ID ${urlId} not found`);
-    }
-
+  async getUrlAnalytics(urlEntity: Url): Promise<AnalyticsResponse> {
     const now = new Date();
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
     const [overview, clicksByDayRaw, topReferersRaw, devicesRaw, browsersRaw] =
       await Promise.all([
-        this.analyticsRepo.getOverviewStats(urlId, sevenDaysAgo, thirtyDaysAgo),
-        this.analyticsRepo.getClicksByDay(urlId),
-        this.analyticsRepo.getTopReferers(urlId),
-        this.analyticsRepo.getDeviceStats(urlId),
-        this.analyticsRepo.getBrowserStats(urlId),
+        this.analyticsRepo.getOverviewStats(
+          urlEntity.id,
+          sevenDaysAgo,
+          thirtyDaysAgo,
+        ),
+        this.analyticsRepo.getClicksByDay(urlEntity.id),
+        this.analyticsRepo.getTopReferers(urlEntity.id),
+        this.analyticsRepo.getDeviceStats(urlEntity.id),
+        this.analyticsRepo.getBrowserStats(urlEntity.id),
       ]);
 
     return {
-      urlId,
+      urlId: urlEntity.id,
       slug: urlEntity.slug,
       totalClicks: Number(overview?.totalClicks || 0),
       uniqueVisitors: Number(overview?.uniqueVisitors || 0),

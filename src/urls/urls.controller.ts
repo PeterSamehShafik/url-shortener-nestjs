@@ -84,6 +84,7 @@ export class UrlsController {
 
   @Get(':id/analytics')
   async getAnalytics(@Param('id') id: string) {
-    return await this.analyticsService.getUrlAnalytics(id);
+    const url = await this.urlsService.findById(id);
+    return await this.analyticsService.getUrlAnalytics(url);
   }
 }

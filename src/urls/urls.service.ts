@@ -165,8 +165,12 @@ export class UrlsService {
     return this.urlsRepo.findAllByUserId(userId);
   }
 
-  findById(id: string): Promise<Url | null> {
-    return this.urlsRepo.findById(id);
+  async findById(id: string): Promise<Url> {
+    const url = await this.urlsRepo.findById(id);
+    if (!url) {
+      throw new NotFoundException(`No URL found for id: ${id}`);
+    }
+    return url;
   }
 
   async update(
