@@ -191,6 +191,16 @@ export class UrlsService {
     await this.cacheService.delUrl(url.slug);
   }
 
+  async purgeExpiredUrls(): Promise<number> {
+    let totalDeleted = 0;
+    let deletedCount = 0;
+    const BATCH_SIZE = 1000;
+    do {
+      deletedCount = await this.urlsRepo.deleteExpired(BATCH_SIZE);
+      totalDeleted += deletedCount;
+    } while (deletedCount > 0);
+    return totalDeleted;
+  }
   // ____Helpers_______________________________________
   preventSsrf(url: string) {
     let hostname: string;

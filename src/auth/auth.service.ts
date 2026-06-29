@@ -137,6 +137,17 @@ export class AuthService {
     }
   }
 
+  async purgeExpiredTokens(): Promise<number> {
+    let totalDeleted = 0;
+    let deletedCount = 0;
+    const BATCH_SIZE = 1000;
+    do {
+      deletedCount = await this.authRepo.deleteExpired(BATCH_SIZE);
+      totalDeleted += deletedCount;
+    } while (deletedCount > 0);
+    return totalDeleted;
+  }
+
   private generateAccessToken(
     userId: string,
     role: userRole,

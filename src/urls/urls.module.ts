@@ -16,5 +16,6 @@ import { CacheModule } from '@/cache/cache.module';
   ],
   controllers: [UrlsController],
   providers: [UrlsService, UrlsRepository],
+  exports: [UrlsService],
 })
 export class UrlsModule {}

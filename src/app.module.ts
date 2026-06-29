@@ -6,6 +6,7 @@ import { AuthModule } from '@/auth/auth.module';
 import { UsersModule } from '@/users/users.module';
 import { UrlsModule } from '@/urls/urls.module';
 import { AnalyticsModule } from '@/analytics/analytics.module';
+import { SchedulerModule } from './scheduler/scheduler.module';
 
 // Entities
 import { User } from '@/users/entities/user.entity';
@@ -20,6 +21,7 @@ import { APP_GUARD } from '@nestjs/core';
 // Guards
 import { JwtAuthGuard } from './auth/guards/jwt.auth.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
+import { CustomThrottlerGuard } from './auth/guards/throttler.guard';
 
 // Cache
 import { CacheModule } from '@nestjs/cache-manager';
@@ -27,7 +29,6 @@ import KeyvRedis from '@keyv/redis';
 import { hours, minutes, seconds, ThrottlerModule } from '@nestjs/throttler';
 import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
 import Redis from 'ioredis';
-import { CustomThrottlerGuard } from './auth/guards/throttler.guard';
 
 @Module({
   imports: [
@@ -100,6 +101,7 @@ import { CustomThrottlerGuard } from './auth/guards/throttler.guard';
     UsersModule,
     AuthModule,
     UrlsModule,
+    SchedulerModule,
   ],
   providers: [
     {
