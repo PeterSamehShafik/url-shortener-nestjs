@@ -81,7 +81,7 @@ export class AuthController {
       blockDuration: hours(1),
     },
     long: {
-      limit: 100,
+      limit: 20,
       ttl: hours(24),
       blockDuration: hours(24),
     },
