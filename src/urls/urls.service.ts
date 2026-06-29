@@ -56,7 +56,7 @@ export class UrlsService {
       const url = await this.findBySlug(slug);
       originalUrl = url.originalUrl;
       urlId = url.id;
-      await this.cacheService.populateUrl(slug, url);
+      await this.cacheService.cacheUrl(slug, url);
     }
 
     this.analyticsService.logClick({

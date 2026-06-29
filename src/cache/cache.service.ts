@@ -16,7 +16,7 @@ export class CacheService {
 
   constructor(@Inject(CACHE_MANAGER) private readonly cacheManager: Cache) {}
 
-  async populateUrl(slug: string, url: Url): Promise<void> {
+  async cacheUrl(slug: string, url: Url): Promise<void> {
     const payload: CachedUrl = {
       id: url.id,
       originalUrl: url.originalUrl,
