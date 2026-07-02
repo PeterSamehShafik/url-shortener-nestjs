@@ -1,6 +1,6 @@
 # URL Shortener REST API
 
-🔗 **[Live Demo](https://li-n-k.vercel.app/)**
+🔗 **[Live Demo](https://lin-k.up.railway.app/BCS58c/)**
 
 > API docs available locally at `http://localhost:3000/api/docs` — disabled in production.
 
