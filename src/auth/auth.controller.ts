@@ -178,7 +178,8 @@ export class AuthController {
     );
     const cookieOptions = {
       httpOnly: true,
-      sameSite: 'strict' as const,
+      // sameSite: 'strict' as const,
+      sameSite: 'none' as const,
       secure: this.configService.get<string>('NODE_ENV') === 'production',
     };
     res.cookie('accessToken', accessToken, {
