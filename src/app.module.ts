@@ -42,10 +42,10 @@ import Redis from 'ioredis';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
-        const host = configService.get<string>('REDIS_HOST');
-        const port = configService.get<number>('REDIS_PORT');
+        // const host = configService.get<string>('REDIS_HOST');
+        // const port = configService.get<number>('REDIS_PORT');
         return {
-          stores: [new KeyvRedis(`redis://${host}:${port}`)],
+          stores: [new KeyvRedis(configService.get<string>('REDIS_URL'))],
           ttl: 24 * 60 * 60 * 1000,
         };
       },
@@ -54,11 +54,18 @@ import Redis from 'ioredis';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         type: 'postgres',
-        host: config.get<string>('DB_HOST'),
-        port: config.get<number>('DB_PORT'),
-        username: config.get<string>('DB_USERNAME'),
-        password: config.get<string>('DB_PASSWORD'),
-        database: config.get<string>('DB_NAME'),
+        // host: config.get<string>('DB_HOST'),
+        // port: config.get<number>('DB_PORT'),
+        // username: config.get<string>('DB_USERNAME'),
+        // password: config.get<string>('DB_PASSWORD'),
+        // database: config.get<string>('DB_NAME'),
+
+        //neon setup
+        url: config.get<string>('DATABASE_URL'),
+        ssl: {
+          rejectUnauthorized: false,
+        },
+
         entities: [User, Url, UrlAnalytic, UrlTag, RefreshToken],
         migrations: [__dirname + '/migrations/*{.ts,.js}'],
         synchronize: false,
@@ -71,10 +78,7 @@ import Redis from 'ioredis';
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
         storage: new ThrottlerStorageRedisService(
-          new Redis({
-            host: configService.get<string>('REDIS_HOST'),
-            port: configService.get<number>('REDIS_PORT'),
-          }),
+          new Redis(configService.get<string>('REDIS_URL')!),
         ),
         throttlers: [
           {

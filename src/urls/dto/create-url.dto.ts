@@ -3,6 +3,7 @@ import { IsOptionalButNotNull } from '@/common/decorators/is-optional-but-not-nu
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsNotEmpty,
+  IsOptional,
   IsString,
   IsUrl,
   Matches,
@@ -49,7 +50,7 @@ export class CreateUrlDto {
     type: String,
     required: false,
   })
-  @IsOptionalButNotNull()
+  @IsOptional()
   @IsFutureIsoDate()
   expiresAt?: Date;
 }

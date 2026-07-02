@@ -1,6 +1,11 @@
-import { ExecutionContext, Injectable } from '@nestjs/common';
+import {
+  ExecutionContext,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { AuthGuard } from '@nestjs/passport';
+import { TokenExpiredError } from '@nestjs/jwt';
 import { IS_PUBLIC_KEY } from '@/common/decorators/public.decorator';
 import { IS_OPTIONAL_AUTH_KEY } from '@/common/decorators/optional-auth.decorator';
 
@@ -21,10 +26,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       IS_OPTIONAL_AUTH_KEY,
       [context.getHandler(), context.getClass()],
     );
-    if (isOptional) {
-      // Run the guard but don't reject if it fails
-      return this.canActivateOptional(context);
-    }
+    if (isOptional) return this.canActivateOptional(context);
 
     return super.canActivate(context);
   }
@@ -34,8 +36,11 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
   ): Promise<boolean> {
     try {
       await super.canActivate(context);
-    } catch {
-      // No token or invalid token — that's fine, req.user stays undefined
+    } catch (err) {
+      if (err instanceof TokenExpiredError) {
+        throw new UnauthorizedException('Token expired');
+      }
+      // No token or invalid token — treat as guest
     }
     return true;
   }

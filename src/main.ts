@@ -7,9 +7,10 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
-  applyAppSetup(app);
-
   const configService = app.get(ConfigService);
+
+  applyAppSetup(app, configService);
+
   const port = configService.get<number>('PORT');
   const isProduction = configService.get<string>('NODE_ENV') === 'production';
 

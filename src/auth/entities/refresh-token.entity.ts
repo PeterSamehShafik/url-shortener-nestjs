@@ -14,7 +14,6 @@ export class RefreshToken {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @Index()
   @Column({ type: 'uuid' })
   userId!: string;
 

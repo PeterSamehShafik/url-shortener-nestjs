@@ -34,6 +34,7 @@ import {
   ApiGoneResponse,
   ApiCookieAuth,
 } from '@nestjs/swagger';
+import { ConfigService } from '@nestjs/config';
 
 @ApiTags('URLs & Analytics')
 @Controller()
@@ -41,6 +42,7 @@ export class UrlsController {
   constructor(
     private readonly urlsService: UrlsService,
     private readonly analyticsService: AnalyticsService,
+    private readonly configService: ConfigService,
   ) {}
 
   @OptionalAuth()
@@ -75,7 +77,6 @@ export class UrlsController {
     @Body() createUrlDto: CreateUrlDto,
     @CurrentUser() user?: RequestUser,
   ) {
-    console.log(user);
     return this.urlsService.create(createUrlDto, user?.userId ?? null);
   }
 
@@ -174,23 +175,32 @@ export class UrlsController {
     @Req() req: Request,
     @Res() res: Response,
   ) {
-    const userAgent = req.headers['user-agent'] || null;
-    const referer = req.headers['referer'] || null;
-    const hashedIp = req.ip
-      ? createHash('sha256').update(req.ip).digest('hex')
-      : null;
+    try {
+      const userAgent = req.headers['user-agent'] || null;
+      const referer = req.headers['referer'] || null;
+      const hashedIp = req.ip
+        ? createHash('sha256').update(req.ip).digest('hex')
+        : null;
 
-    const originalUrl = await this.urlsService.redirect(
-      slug,
-      hashedIp,
-      userAgent,
-      referer,
-    );
-    return res.redirect(HttpStatus.MOVED_PERMANENTLY, originalUrl);
+      const originalUrl = await this.urlsService.redirect(
+        slug,
+        hashedIp,
+        userAgent,
+        referer,
+      );
+
+      return res.redirect(HttpStatus.FOUND, originalUrl);
+    } catch (err) {
+      console.log(err);
+      return res.redirect(
+        HttpStatus.FOUND,
+        `${this.configService.get('CLIENT_URL')}/404`,
+      );
+    }
   }
 
   @ApiCookieAuth('accessToken')
-  @Get(':id/analytics')
+  @Get('urls/:id/analytics')
   @ApiOperation({
     summary: 'Fetch timeline engagement metrics',
     description:
