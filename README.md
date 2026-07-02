@@ -1,5 +1,9 @@
 # URL Shortener REST API
 
+🔗 **[Live Demo](https://li-n-k.vercel.app/)**
+
+> API docs available locally at `http://localhost:3000/api/docs` — disabled in production.
+
 A production-grade URL Shortener REST API built with NestJS, PostgreSQL, and Redis — designed with clean architecture, real system design thinking, and production-ready patterns throughout.
 
 ---
